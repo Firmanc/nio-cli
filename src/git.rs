@@ -8,8 +8,6 @@ pub enum GitError {
     ExecutionError(#[from] std::io::Error),
     #[error("Git command failed with status: {0}")]
     CommandFailed(String),
-    #[error("Failed to parse worktree list output")]
-    ParseError,
 }
 
 #[derive(Debug, PartialEq)]
