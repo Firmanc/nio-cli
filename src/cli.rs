@@ -1,5 +1,5 @@
 // src/cli.rs
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(name = "nio")]
@@ -16,6 +16,19 @@ pub enum Commands {
         #[command(subcommand)]
         command: GtreeCommands,
     },
+    /// Generate shell initialization script
+    Init {
+        /// The shell to generate the script for (bash, zsh, fish)
+        #[arg(value_enum)]
+        shell: Option<Shell>,
+    },
+}
+
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq)]
+pub enum Shell {
+    Bash,
+    Zsh,
+    Fish,
 }
 
 #[derive(Subcommand)]
