@@ -3,6 +3,7 @@ mod utils;
 mod git;
 mod cli;
 mod gtree;
+mod init;
 
 use clap::Parser;
 use cli::{Cli, Commands};
