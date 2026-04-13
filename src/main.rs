@@ -17,7 +17,9 @@ fn main() -> anyhow::Result<()> {
             let current_dir = env::current_dir()?;
             gtree::handle_command(command, &current_dir)?;
         }
-        Commands::Init { .. } => todo!(),
+        Commands::Init { shell } => {
+            init::handle_init(*shell)?;
+        }
     }
 
     Ok(())
