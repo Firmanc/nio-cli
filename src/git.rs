@@ -1,0 +1,106 @@
+use std::process::Command;
+use std::path::Path;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum GitError {
+    #[error("Failed to execute git command: {0}")]
+    ExecutionError(#[from] std::io::Error),
+    #[error("Git command failed with status: {0}")]
+    CommandFailed(String),
+    #[error("Failed to parse worktree list output")]
+    ParseError,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Worktree {
+    pub path: String,
+    pub branch: String,
+}
+
+pub fn run_git_command(args: &[&str]) -> Result<String, GitError> {
+    let output = Command::new("git")
+        .args(args)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(GitError::CommandFailed(stderr));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+pub fn add_worktree(target_path: &Path, branch_name: &str) -> Result<(), GitError> {
+    let path_str = target_path.to_str().unwrap_or_default();
+    run_git_command(&["worktree", "add", "-b", branch_name, path_str])?;
+    Ok(())
+}
+
+pub fn remove_worktree(target_path: &Path) -> Result<(), GitError> {
+    let path_str = target_path.to_str().unwrap_or_default();
+    run_git_command(&["worktree", "remove", path_str])?;
+    Ok(())
+}
+
+pub fn list_worktrees() -> Result<Vec<Worktree>, GitError> {
+    let output = run_git_command(&["worktree", "list", "--porcelain"])?;
+    parse_worktree_list(&output)
+}
+
+fn parse_worktree_list(output: &str) -> Result<Vec<Worktree>, GitError> {
+    let mut worktrees = Vec::new();
+    let mut current_path = String::new();
+
+    for line in output.lines() {
+        if let Some(path) = line.strip_prefix("worktree ") {
+            current_path = path.to_string();
+        } else if let Some(branch) = line.strip_prefix("branch ") {
+            // Strip the full ref path to just get the branch name
+            let branch_name = branch.replace("refs/heads/", "");
+            if !current_path.is_empty() {
+                worktrees.push(Worktree {
+                    path: current_path.clone(),
+                    branch: branch_name,
+                });
+                current_path.clear();
+            }
+        }
+    }
+
+    Ok(worktrees)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_worktree_list() {
+        let output = "\
+worktree /path/to/my-repo
+branch refs/heads/main
+
+worktree /path/to/my-repo_feature-x
+branch refs/heads/feature-x
+
+worktree /path/to/my-repo_fix-bug
+branch refs/heads/fix-bug
+";
+        let expected = vec![
+            Worktree {
+                path: "/path/to/my-repo".to_string(),
+                branch: "main".to_string(),
+            },
+            Worktree {
+                path: "/path/to/my-repo_feature-x".to_string(),
+                branch: "feature-x".to_string(),
+            },
+            Worktree {
+                path: "/path/to/my-repo_fix-bug".to_string(),
+                branch: "fix-bug".to_string(),
+            },
+        ];
+        assert_eq!(parse_worktree_list(output).unwrap(), expected);
+    }
+}
