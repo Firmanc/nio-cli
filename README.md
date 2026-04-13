@@ -13,6 +13,14 @@
 
 ### Installation
 
+You can install `nio` by running the included installation script:
+
+```bash
+./scripts/install.sh
+```
+
+Alternatively, you can build and install it manually:
+
 1.  **Build the project**:
     ```bash
     cargo build --release
