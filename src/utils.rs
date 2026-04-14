@@ -5,7 +5,7 @@ use thiserror::Error;
 pub enum UtilError {
     #[error("Failed to get file name from path")]
     NoFileName,
-    #[error("Invalid branch name: {0} (must not contain / or ..)")]
+    #[error("Invalid branch name: {0} (must not contain ..)")]
     InvalidBranchName(String),
 }
 
@@ -18,11 +18,12 @@ pub fn get_current_dir_name(current_dir: &Path) -> Result<String, UtilError> {
 }
 
 pub fn build_worktree_path(current_dir: &Path, branch_name: &str) -> Result<PathBuf, UtilError> {
-    if branch_name.contains('/') || branch_name.contains("..") {
+    if branch_name.contains("..") {
         return Err(UtilError::InvalidBranchName(branch_name.to_string()));
     }
+    let sanitized_branch = branch_name.replace('/', "-");
     let dir_name = get_current_dir_name(current_dir)?;
-    let target_dir_name = format!("{}_{}", dir_name, branch_name);
+    let target_dir_name = format!("{}_{}", dir_name, sanitized_branch);
     let mut target_path = current_dir.parent().ok_or(UtilError::NoFileName)?.to_path_buf();
     target_path.push(target_dir_name);
     Ok(target_path)
@@ -47,12 +48,16 @@ mod tests {
     }
 
     #[test]
+    fn test_build_worktree_path_with_slash() {
+        let current_dir = Path::new("/path/to/my-repo");
+        let branch = "feat/DEV-3797-e2e-meetings-flow";
+        let expected = PathBuf::from("/path/to/my-repo_feat-DEV-3797-e2e-meetings-flow");
+        assert_eq!(build_worktree_path(current_dir, branch).unwrap(), expected);
+    }
+
+    #[test]
     fn test_build_worktree_path_invalid_branch() {
         let current_dir = Path::new("/path/to/my-repo");
-        
-        // Branch with /
-        let branch_slash = "feature/x";
-        assert!(build_worktree_path(current_dir, branch_slash).is_err());
         
         // Branch with ..
         let branch_dots = "feature..x";
