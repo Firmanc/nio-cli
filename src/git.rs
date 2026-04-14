@@ -1,3 +1,4 @@
+// src/git.rs
 use std::process::Command;
 use std::path::Path;
 use thiserror::Error;
@@ -39,6 +40,21 @@ pub fn remove_worktree(target_path: &Path) -> Result<(), GitError> {
     let path_str = target_path.to_str().unwrap_or_default();
     run_git_command(&["worktree", "remove", path_str])?;
     Ok(())
+}
+
+pub fn list_ignored_items() -> Result<Vec<String>, GitError> {
+    let output = run_git_command(&["clean", "-ndX"])?;
+    Ok(parse_ignored_list(&output))
+}
+
+fn parse_ignored_list(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .filter_map(|line| {
+            // "Would remove path/to/file"
+            line.strip_prefix("Would remove ").map(|s| s.trim().to_string())
+        })
+        .collect()
 }
 
 pub fn list_worktrees() -> Result<Vec<Worktree>, GitError> {
@@ -100,5 +116,20 @@ branch refs/heads/fix-bug
             },
         ];
         assert_eq!(parse_worktree_list(output).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_parse_ignored_list() {
+        let output = "\
+Would remove .env
+Would remove node_modules/
+Would remove target/
+";
+        let expected = vec![
+            ".env".to_string(),
+            "node_modules/".to_string(),
+            "target/".to_string(),
+        ];
+        assert_eq!(parse_ignored_list(output), expected);
     }
 }
