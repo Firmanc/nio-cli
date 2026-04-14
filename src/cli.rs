@@ -40,6 +40,9 @@ pub enum GtreeCommands {
     },
     /// Interactively select a worktree to switch to
     Switch,
+    /// List all git worktrees
+    #[command(alias = "ls")]
+    List,
     /// Remove an existing worktree by branch name
     Remove {
         /// The name of the branch to remove the worktree for

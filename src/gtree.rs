@@ -9,6 +9,7 @@ pub fn handle_command(command: &GtreeCommands, current_dir: &Path) -> Result<()>
     match command {
         GtreeCommands::Create { branch_name } => create_worktree(current_dir, branch_name)?,
         GtreeCommands::Switch => switch_worktree()?,
+        GtreeCommands::List => list_worktrees()?,
         GtreeCommands::Remove { branch_name } => remove_worktree(current_dir, branch_name)?,
     }
     Ok(())
@@ -49,6 +50,27 @@ fn switch_worktree() -> Result<()> {
         println!("{}", selected_path);
     } else {
         eprintln!("Selection cancelled.");
+    }
+
+    Ok(())
+}
+
+fn list_worktrees() -> Result<()> {
+    let worktrees = git::list_worktrees().context("Failed to list worktrees")?;
+    
+    if worktrees.is_empty() {
+        eprintln!("No worktrees found.");
+        return Ok(());
+    }
+
+    // Find the longest branch name for alignment
+    let max_branch_len = worktrees.iter()
+        .map(|w| w.branch.len())
+        .max()
+        .unwrap_or(0);
+
+    for w in worktrees {
+        println!("{:<width$}  {}", w.branch, w.path, width = max_branch_len);
     }
 
     Ok(())
