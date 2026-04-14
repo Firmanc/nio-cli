@@ -37,6 +37,9 @@ pub enum GtreeCommands {
     Create {
         /// The name of the new branch and worktree suffix
         branch_name: String,
+        /// Copy git-ignored files (e.g., .env, node_modules) to the new worktree
+        #[arg(short, long)]
+        copy_ignored: bool,
     },
     /// Interactively select a worktree to switch to
     Switch,
