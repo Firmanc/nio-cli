@@ -50,5 +50,8 @@ pub enum GtreeCommands {
     Remove {
         /// The name of the branch to remove the worktree for
         branch_name: String,
+        /// Force removal even if the worktree has uncommitted changes
+        #[arg(short, long)]
+        force: bool,
     },
 }

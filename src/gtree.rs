@@ -13,7 +13,7 @@ pub fn handle_command(command: &GtreeCommands, current_dir: &Path) -> Result<()>
         },
         GtreeCommands::Switch => switch_worktree()?,
         GtreeCommands::List => list_worktrees()?,
-        GtreeCommands::Remove { branch_name } => remove_worktree(current_dir, branch_name)?,
+        GtreeCommands::Remove { branch_name, force } => remove_worktree(branch_name, *force)?,
     }
     Ok(())
 }
@@ -22,10 +22,18 @@ fn create_worktree(current_dir: &Path, branch_name: &str, copy_ignored: bool) ->
     let target_path = utils::build_worktree_path(current_dir, branch_name)
         .context("Failed to build target worktree path")?;
     
-    git::add_worktree(&target_path, branch_name)
-        .context("Failed to execute git worktree add")?;
-        
-    eprintln!("Successfully created worktree for branch '{}' at {:?}", branch_name, target_path);
+    let branch_exists = git::branch_exists(branch_name)
+        .context("Failed to check if branch exists")?;
+
+    if branch_exists {
+        git::add_worktree_existing(&target_path, branch_name)
+            .context("Failed to execute git worktree add for existing branch")?;
+        eprintln!("Successfully created worktree for existing branch '{}' at {:?}", branch_name, target_path);
+    } else {
+        git::add_worktree(&target_path, branch_name)
+            .context("Failed to execute git worktree add for new branch")?;
+        eprintln!("Successfully created worktree for new branch '{}' at {:?}", branch_name, target_path);
+    }
 
     if copy_ignored {
         copy_ignored_items(current_dir, &target_path)?;
@@ -116,17 +124,19 @@ fn list_worktrees() -> Result<()> {
     Ok(())
 }
 
-fn remove_worktree(current_dir: &Path, branch_name: &str) -> Result<()> {
-    let target_path = utils::build_worktree_path(current_dir, branch_name)
-        .context("Failed to build target worktree path")?;
-        
-    if !target_path.exists() {
-        anyhow::bail!("Worktree path does not exist: {:?}", target_path);
-    }
+fn remove_worktree(branch_name: &str, force: bool) -> Result<()> {
+    let worktrees = git::list_worktrees().context("Failed to list worktrees")?;
+    
+    let target_worktree = worktrees.iter().find(|w| w.branch == branch_name);
 
-    git::remove_worktree(&target_path)
-        .context("Failed to execute git worktree remove")?;
-        
-    eprintln!("Successfully removed worktree for branch '{}' at {:?}", branch_name, target_path);
+    if let Some(wt) = target_worktree {
+        let target_path = Path::new(&wt.path);
+        git::remove_worktree(target_path, force)
+            .context("Failed to execute git worktree remove")?;
+        eprintln!("Successfully removed worktree for branch '{}' at {:?}", branch_name, target_path);
+    } else {
+        anyhow::bail!("Worktree for branch '{}' not found", branch_name);
+    }
+    
     Ok(())
 }

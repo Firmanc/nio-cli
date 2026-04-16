@@ -36,9 +36,26 @@ pub fn add_worktree(target_path: &Path, branch_name: &str) -> Result<(), GitErro
     Ok(())
 }
 
-pub fn remove_worktree(target_path: &Path) -> Result<(), GitError> {
+pub fn add_worktree_existing(target_path: &Path, branch_name: &str) -> Result<(), GitError> {
     let path_str = target_path.to_str().unwrap_or_default();
-    run_git_command(&["worktree", "remove", path_str])?;
+    run_git_command(&["worktree", "add", path_str, branch_name])?;
+    Ok(())
+}
+
+pub fn branch_exists(branch_name: &str) -> Result<bool, GitError> {
+    let status = Command::new("git")
+        .args(["show-ref", "--verify", "--quiet", &format!("refs/heads/{}", branch_name)])
+        .status()?;
+    Ok(status.success())
+}
+
+pub fn remove_worktree(target_path: &Path, force: bool) -> Result<(), GitError> {
+    let path_str = target_path.to_str().unwrap_or_default();
+    if force {
+        run_git_command(&["worktree", "remove", "--force", path_str])?;
+    } else {
+        run_git_command(&["worktree", "remove", path_str])?;
+    }
     Ok(())
 }
 
