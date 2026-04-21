@@ -8,8 +8,8 @@ use crate::{git, utils};
 
 pub fn handle_command(command: &GtreeCommands, current_dir: &Path) -> Result<()> {
     match command {
-        GtreeCommands::Create { branch_name, copy_ignored } => {
-            create_worktree(current_dir, branch_name, *copy_ignored)?
+        GtreeCommands::Create { branch_name, no_copy_ignored } => {
+            create_worktree(current_dir, branch_name, !*no_copy_ignored)?
         },
         GtreeCommands::Switch => switch_worktree()?,
         GtreeCommands::List => list_worktrees()?,
