@@ -22,6 +22,12 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: Option<Shell>,
     },
+    /// Kill processes by port or PID
+    Kill {
+        /// Ports or PIDs to kill
+        #[arg(required = true)]
+        identifiers: Vec<String>,
+    },
 }
 
 #[derive(ValueEnum, Clone, Copy, Debug, PartialEq)]
