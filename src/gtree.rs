@@ -62,9 +62,23 @@ fn copy_ignored_items(source_dir: &Path, target_dir: &Path) -> Result<()> {
             continue;
         }
 
-        // We use copy_items which handles both files and directories
+        // Determine the target path by joining target_dir with the relative item path
+        let relative_path = Path::new(&item);
+        let target_item_path = target_dir.join(relative_path);
+        
+        // Ensure the parent directory exists in the target worktree
+        if let Some(parent) = target_item_path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .with_context(|| format!("Failed to create directory {:?}", parent))?;
+            }
+        }
+
+        // Use copy_items to copy the file or directory into its specific parent directory
         let items_to_copy = vec![source_path];
-        if let Err(e) = fs_extra::copy_items(&items_to_copy, target_dir, &options) {
+        let destination = target_item_path.parent().unwrap_or(target_dir);
+        
+        if let Err(e) = fs_extra::copy_items(&items_to_copy, destination, &options) {
             eprintln!("Warning: Failed to copy {}: {}", item, e);
         } else {
             eprintln!("  Copied {}", item);
