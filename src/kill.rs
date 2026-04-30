@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::process::Command;
-use sysinfo::{Pid, System, SystemExt, ProcessExt, Signal};
+use sysinfo::{Pid, System, Signal};
 use std::io::Write;
 use tabwriter::TabWriter;
 use dialoguer::{theme::ColorfulTheme, Confirm};
@@ -35,7 +35,7 @@ pub fn find_processes(identifiers: &[String]) -> Result<Vec<ProcessMatch>> {
                 if let Some(proc) = system.process(Pid::from(pid as usize)) {
                     matches.push(ProcessMatch {
                         pid,
-                        name: proc.name().to_string(),
+                        name: proc.name().to_string_lossy().into_owned(),
                         match_type: MatchType::Port,
                         identifier: id_str.clone(),
                     });
@@ -48,7 +48,7 @@ pub fn find_processes(identifiers: &[String]) -> Result<Vec<ProcessMatch>> {
         if let Some(proc) = system.process(Pid::from(id as usize)) {
             matches.push(ProcessMatch {
                 pid: id,
-                name: proc.name().to_string(),
+                name: proc.name().to_string_lossy().into_owned(),
                 match_type: MatchType::Pid,
                 identifier: id_str.clone(),
             });

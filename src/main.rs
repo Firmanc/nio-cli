@@ -4,6 +4,7 @@ mod git;
 mod cli;
 mod gtree;
 mod init;
+mod kill;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -19,6 +20,9 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Init { shell } => {
             init::handle_init(*shell)?;
+        }
+        Commands::Kill { identifiers } => {
+            kill::handle_command(identifiers)?;
         }
     }
 
